@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>バドミントン審判アプリ</title>
+
+  <!-- バドミントンラケット＆シャトル（🏸）アイコン -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏸</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏸</text></svg>">
+
+  <!-- iOS Safari / Android Chrome 全画面＆スタンドアロン起動設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="バド審判">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b5e20">
+
+  <style>
+    :root {
+      --primary-color: #1b5e20;
+      --accent-color: #d32f2f;
+      --bg-color: #f4f6f8;
+      --team-a-bg: #e8f5e9;
+      --team-a-border: #a5d6a7;
+      --team-b-bg: #e3f2fd;
+      --team-b-border: #90caf9;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 10px;
+      padding-top: max(10px, env(safe-area-inset-top));
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      background-color: var(--bg-color);
+      color: #333;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.2rem;
+      margin: 5px 0 10px;
+      color: var(--primary-color);
+    }
+
+    .mode-tab-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .mode-tab {
+      flex: 1;
+      max-width: 200px;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1rem;
+      background: #e0e0e0;
+      color: #666;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mode-tab.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #666;
+      display: block;
+      margin-bottom: 2px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      text-align: center;
+      padding: 5px 0;
+    }
+    .team-box { flex: 1; }
+    .team-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
+    .score-display { font-size: 3rem; font-weight: bold; color: #111; line-height: 1; margin: 10px 0; }
+    .game-count { font-size: 0.9rem; color: #666; }
+    .btn-score {
+      width: 80%;
+      max-width: 150px;
+      padding: 12px 0;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      background-color: var(--primary-color);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+    .btn-score:disabled { background-color: #ccc; cursor: not-allowed; }
+    .btn-score:active:not(:disabled) { transform: scale(0.96); }
+    
+    .actions {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-next-game { background: #2E7D32; color: white; }
+    .btn-undo { background: #ff9800; color: white; }
+    .btn-reset { background: #f44336; color: white; }
+    .btn-time { background: #2196F3; color: white; }
+    .btn-save { background: #673AB7; color: white; }
+    .btn-load { background: #009688; color: white; }
+    .btn-csv { background: #2e7d32; color: white; }
+
+    .legend-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn-legend {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      background: #e0e0e0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* --- ラリー表スタイル --- */
+    .rally-container {
+      overflow-x: auto;
+      margin-top: 8px;
+      border: 1px solid #777;
+      border-radius: 4px;
+      background: #fff;
+    }
+    .rally-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    .rally-table th, .rally-table td {
+      border: 1px solid #888;
+      padding: 6px 8px;
+      min-width: 30px;
+    }
+    .rally-table th {
+      background-color: #333;
+      color: #fff;
+      font-weight: bold;
+    }
+    .rally-table tr:nth-child(even) {
+      background-color: #fdfdfd;
+    }
+    .team-header-A {
+      background-color: #e8f5e9 !important;
+      font-weight: bold;
+      text-align: left;
+      padding-left: 8px;
+      color: #1b5e20;
+    }
+    .team-header-B {
+      background-color: #e3f2fd !important;
+      font-weight: bold;
+      text-align: left;
+      padding-left: 8px;
+      color: #1565c0;
+    }
+    .score-cell-A {
+      background-color: #c8e6c9 !important;
+      font-weight: bold;
+      color: #1b5e20;
+    }
+    .score-cell-B {
+      background-color: #bbdefb !important;
+      font-weight: bold;
+      color: #0d47a1;
+    }
+    .mark-sr-col {
+      font-weight: bold;
+      color: #b71c1c;
+      background-color: #fff59d !important;
+      min-width: 36px !important;
+    }
+
+    .game-status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e0e0e0;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      margin-left: 8px;
+    }
+
+    .history {
+      font-size: 0.85rem;
+      max-height: 100px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ときわジュニアバドミントン 審判アプリ</h1>
+
+  <div class="mode-tab-container">
+    <div class="mode-tab active" id="tabDoubles" onclick="switchMode('doubles')">ダブルス</div>
+    <div class="mode-tab" id="tabSingles" onclick="switchMode('singles')">シングルス</div>
+  </div>
+
+  <div class="card" style="background-color: #eef2f5;">
+    <label style="margin-bottom:6px;">データ記録・復元</label>
+    <div class="actions" style="margin-top:0;">
+      <button class="btn-action btn-save" onclick="saveToStorage()">途中で保存</button>
+      <button class="btn-action btn-load" onclick="loadFromStorage()">保存データを読み込み</button>
+      <button class="btn-action btn-csv" onclick="exportFormattedExcel()">Excel出力 (試合結果)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid-3">
+      <div><label>大会名称</label><input type="text" id="tournament"></div>
+      <div><label>試合番号</label><input type="text" id="matchNo"></div>
+      <div><label>コート番号</label><input type="text" id="courtNo"></div>
+    </div>
+    <div class="grid-3" style="margin-top: 8px;">
+      <div><label>日付</label><input type="date" id="date"></div>
+      <div><label>予定開始時刻</label><input type="time" id="schedTime"></div>
+      <div><label>シャトル数</label><input type="number" id="shuttles" value="0"></div>
+    </div>
+  </div>
+
+  <div class="card grid-2" id="inputContainerDoubles">
+    <div>
+      <label>組 (ペア A)</label>
+      <input type="text" id="teamA_p1" placeholder="選手 A1" oninput="updateTeamNames()">
+      <input type="text" id="teamA_p2" placeholder="選手 A2" style="margin-top:4px;" oninput="updateTeamNames()">
+    </div>
+    <div>
+      <label>組 (ペア B)</label>
+      <input type="text" id="teamB_p1" placeholder="選手 B1" oninput="updateTeamNames()">
+      <input type="text" id="teamB_p2" placeholder="選手 B2" style="margin-top:4px;" oninput="updateTeamNames()">
+    </div>
+  </div>
+
+  <div class="card grid-2" id="inputContainerSingles" style="display: none;">
+    <div>
+      <label>選手 A</label>
+      <input type="text" id="singlesA_p1" placeholder="選手 A" oninput="updateTeamNames()">
+    </div>
+    <div>
+      <label>選手 B</label>
+      <input type="text" id="singlesB_p1" placeholder="選手 B" oninput="updateTeamNames()">
+    </div>
+  </div>
+
+  <!-- サーバー／レシーバー設定（2列に変更） -->
+  <div class="card">
+    <label style="margin-bottom:6px;">
+      <span id="currentGameLabel">第 1 ゲーム</span> サービス／レシーバー設定
+    </label>
+    <div class="grid-2">
+      <div>
+        <label>最初のサーバー (S)</label>
+        <select id="initialServerPlayer" onchange="onServerChange()"></select>
+      </div>
+      <div>
+        <label>最初のレシーバー (R)</label>
+        <select id="initialReceiverPlayer" onchange="saveSRSetting()"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="text-align: center; font-weight: bold; margin-bottom: 5px;" id="matchStatusText">
+      進行中: 第 1 ゲーム (ダブルス)
+    </div>
+
+    <div class="scoreboard">
+      <div class="team-box">
+        <div class="team-name" id="dispTeamA">サイド A</div>
+        <div class="game-count">獲得ゲーム: <span id="gamesA">0</span></div>
+        <div class="score-display" id="scoreA">0</div>
+        <button class="btn-score" id="btnScoreA" onclick="addPoint('A')">+1 点</button>
+      </div>
+
+      <div style="font-size: 1.5rem; font-weight: bold; color: #888;">VS</div>
+
+      <div class="team-box">
+        <div class="team-name" id="dispTeamB">サイド B</div>
+        <div class="game-count">獲得ゲーム: <span id="gamesB">0</span></div>
+        <div class="score-display" id="scoreB">0</div>
+        <button class="btn-score" id="btnScoreB" onclick="addPoint('B')">+1 点</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-action btn-next-game" id="btnFinishGame" onclick="finishCurrentGame()">このゲームを終了（次へ）</button>
+      <button class="btn-action btn-undo" onclick="undo()">1手戻す</button>
+      <button class="btn-action btn-reset" onclick="resetMatch()">試合リセット</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>ラリー表 (全ゲーム一覧)</label>
+    <div id="rallyTablesContainer"></div>
+  </div>
+
+  <div class="card">
+    <div class="grid-3">
+      <div>
+        <label>開始時刻</label>
+        <input type="text" id="startTime" readonly>
+        <button class="btn-action btn-time" style="margin-top:4px; width:100%;" onclick="recordTime('start')">開始</button>
+      </div>
+      <div>
+        <label>終了時刻</label>
+        <input type="text" id="endTime" readonly>
+        <button class="btn-action btn-time" style="margin-top:4px; width:100%;" onclick="recordTime('end')">終了</button>
+      </div>
+      <div>
+        <label>試合時間</label>
+        <input type="text" id="duration" readonly>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top: 8px;">
+      <div><label>主審</label><input type="text" id="referee"></div>
+      <div><label>サービスジャッジ</label><input type="text" id="serviceJudge"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>特記事項 / 凡例記録</label>
+    <div class="legend-btns">
+      <button class="btn-legend" onclick="addNote('W:警告')">W:警告</button>
+      <button class="btn-legend" onclick="addNote('F:フォルト')">F:フォルト</button>
+      <button class="btn-legend" onclick="addNote('D:失格')">D:失格</button>
+      <button class="btn-legend" onclick="addNote('S:中断')">S:中断</button>
+      <button class="btn-legend" onclick="addNote('1:ケガ')">1:ケガ</button>
+      <button class="btn-legend" onclick="addNote('キケン')">キケン:棄権</button>
+      <button class="btn-legend" onclick="addNote('R:レフェリー')">R:レフェリー</button>
+      <button class="btn-legend" onclick="addNote('O:オーバールール')">O:オーバールール</button>
+      <button class="btn-legend" onclick="addNote('C:サービスコート訂正')">C:サービスコート訂正</button>
+    </div>
+    <textarea id="notes" rows="3" style="width:100%; margin-top:6px; box-sizing:border-box;"></textarea>
+  </div>
+
+  <div class="card">
+    <label>スコア詳細ログ</label>
+    <div class="history" id="historyLog"></div>
+  </div>
+
+  <script>
+    let matchMode = 'doubles';
+    let currentGameIndex = 0;
+    let scoreA = 0, scoreB = 0;
+    let gamesA = 0, gamesB = 0;
+    let isMatchOver = false;
+
+    let gameData = [
+      { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null },
+      { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null },
+      { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null }
+    ];
+
+    let history = [];
+    let startTimestamp = null;
+
+    document.getElementById('date').valueAsDate = new Date();
+
+    function switchMode(mode) {
+      if (history.length > 0) {
+        if (!confirm('モードを切り替えると現在の試合進行状況がリセットされます。よろしいですか？')) {
+          return;
+        }
+      }
+      matchMode = mode;
+      
+      document.getElementById('tabDoubles').classList.toggle('active', mode === 'doubles');
+      document.getElementById('tabSingles').classList.toggle('active', mode === 'singles');
+
+      document.getElementById('inputContainerDoubles').style.display = mode === 'doubles' ? 'grid' : 'none';
+      document.getElementById('inputContainerSingles').style.display = mode === 'singles' ? 'grid' : 'none';
+
+      resetMatchData();
+      updateTeamNames();
+    }
+
+    function updateTeamNames() {
+      if (matchMode === 'doubles') {
+        const p1A = document.getElementById('teamA_p1').value || '選手 A1';
+        const p2A = document.getElementById('teamA_p2').value || '選手 A2';
+        const p1B = document.getElementById('teamB_p1').value || '選手 B1';
+        const p2B = document.getElementById('teamB_p2').value || '選手 B2';
+
+        document.getElementById('dispTeamA').innerText = `${p1A} / ${p2A}`;
+        document.getElementById('dispTeamB').innerText = `${p1B} / ${p2B}`;
+      } else {
+        const p1A = document.getElementById('singlesA_p1').value || '選手 A';
+        const p1B = document.getElementById('singlesB_p1').value || '選手 B';
+
+        document.getElementById('dispTeamA').innerText = p1A;
+        document.getElementById('dispTeamB').innerText = p1B;
+      }
+
+      updateSRConfig();
+    }
+
+    /* サーバーリストの初期構築 & 現在の選択の反映 */
+    function updateSRConfig() {
+      const serverSelect = document.getElementById('initialServerPlayer');
+      const currentServer = gameData[currentGameIndex].serverPlayer;
+
+      serverSelect.innerHTML = '<option value="">-- 選択してください --</option>';
+
+      if (matchMode === 'doubles') {
+        const p1A = document.getElementById('teamA_p1').value || '選手 A1';
+        const p2A = document.getElementById('teamA_p2').value || '選手 A2';
+        const p1B = document.getElementById('teamB_p1').value || '選手 B1';
+        const p2B = document.getElementById('teamB_p2').value || '選手 B2';
+
+        serverSelect.innerHTML += `<optgroup label="サイド A"><option value="A1">${p1A}</option><option value="A2">${p2A}</option></optgroup>`;
+        serverSelect.innerHTML += `<optgroup label="サイド B"><option value="B1">${p1B}</option><option value="B2">${p2B}</option></optgroup>`;
+      } else {
+        const p1A = document.getElementById('singlesA_p1').value || '選手 A';
+        const p1B = document.getElementById('singlesB_p1').value || '選手 B';
+
+        serverSelect.innerHTML += `<option value="A1">${p1A}</option>`;
+        serverSelect.innerHTML += `<option value="B1">${p1B}</option>`;
+      }
+
+      if (currentServer) {
+        serverSelect.value = currentServer;
+      }
+
+      updateReceiverConfig();
+    }
+
+    /* 選択されたサーバーに応じてレシーバーの選択肢を絞り込み */
+    function onServerChange() {
+      updateReceiverConfig();
+      saveSRSetting();
+    }
+
+    function updateReceiverConfig() {
+      const serverVal = document.getElementById('initialServerPlayer').value;
+      const receiverSelect = document.getElementById('initialReceiverPlayer');
+      const currentReceiver = gameData[currentGameIndex].receiverPlayer;
+
+      receiverSelect.innerHTML = '<option value="">-- 選択してください --</option>';
+
+      if (!serverVal) {
+        saveSRSetting();
+        return;
+      }
+
+      const serverTeam = serverVal.startsWith('A') ? 'A' : 'B';
+
+      if (matchMode === 'doubles') {
+        const p1A = document.getElementById('teamA_p1').value || '選手 A1';
+        const p2A = document.getElementById('teamA_p2').value || '選手 A2';
+        const p1B = document.getElementById('teamB_p1').value || '選手 B1';
+        const p2B = document.getElementById('teamB_p2').value || '選手 B2';
+
+        if (serverTeam === 'A') {
+          receiverSelect.innerHTML += `<option value="B1">${p1B}</option>`;
+          receiverSelect.innerHTML += `<option value="B2">${p2B}</option>`;
+        } else {
+          receiverSelect.innerHTML += `<option value="A1">${p1A}</option>`;
+          receiverSelect.innerHTML += `<option value="A2">${p2A}</option>`;
+        }
+      } else {
+        const p1A = document.getElementById('singlesA_p1').value || '選手 A';
+        const p1B = document.getElementById('singlesB_p1').value || '選手 B';
+
+        if (serverTeam === 'A') {
+          receiverSelect.innerHTML += `<option value="B1">${p1B}</option>`;
+          receiverSelect.value = "B1"; // シングルスは相手が1人なので自動選択
+        } else {
+          receiverSelect.innerHTML += `<option value="A1">${p1A}</option>`;
+          receiverSelect.value = "A1";
+        }
+      }
+
+      if (currentReceiver && receiverSelect.querySelector(`option[value="${currentReceiver}"]`)) {
+        receiverSelect.value = currentReceiver;
+      }
+
+      saveSRSetting();
+    }
+
+    function saveSRSetting() {
+      if (currentGameIndex < 3) {
+        gameData[currentGameIndex].serverPlayer = document.getElementById('initialServerPlayer').value;
+        gameData[currentGameIndex].receiverPlayer = document.getElementById('initialReceiverPlayer').value;
+        updateDisplay();
+      }
+    }
+
+    function addPoint(team) {
+      if (isMatchOver || gameData[currentGameIndex].finished) return;
+
+      if (!gameData[currentGameIndex].serverPlayer || !gameData[currentGameIndex].receiverPlayer) {
+        alert('最初のサーバーとレシーバーを選択してください。');
+        return;
+      }
+
+      history.push({
+        currentGameIndex,
+        scoreA, scoreB, gamesA, gamesB,
+        isMatchOver,
+        gameData: JSON.parse(JSON.stringify(gameData))
+      });
+
+      if (team === 'A') scoreA++;
+      else scoreB++;
+
+      gameData[currentGameIndex].rallies.push({
+        winner: team,
+        scoreA: scoreA,
+        scoreB: scoreB
+      });
+
+      updateDisplay();
+    }
+
+    function finishCurrentGame() {
+      if (scoreA === 0 && scoreB === 0) {
+        if (!confirm('スコアが 0 - 0 ですが、ゲームを終了しますか？')) return;
+      }
+
+      const winner = scoreA > scoreB ? 'A' : (scoreB > scoreA ? 'B' : null);
+      if (!winner) {
+        alert('同点のためゲームを終了できません。どちらかに加点してください。');
+        return;
+      }
+
+      history.push({
+        currentGameIndex,
+        scoreA, scoreB, gamesA, gamesB,
+        isMatchOver,
+        gameData: JSON.parse(JSON.stringify(gameData))
+      });
+
+      gameData[currentGameIndex].finished = true;
+      gameData[currentGameIndex].winner = winner;
+
+      if (winner === 'A') gamesA++;
+      else gamesB++;
+
+      if (gamesA === 2 || gamesB === 2 || currentGameIndex === 2) {
+        isMatchOver = true;
+        const winnerName = gamesA > gamesB ? document.getElementById('dispTeamA').innerText : document.getElementById('dispTeamB').innerText;
+        alert(`試合終了！ 勝者: ${winnerName} (${gamesA} - ${gamesB})`);
+      } else {
+        currentGameIndex++;
+        scoreA = 0;
+        scoreB = 0;
+        alert(`第 ${currentGameIndex} ゲームを終了しました。第 ${currentGameIndex + 1} ゲームを開始します。`);
+        updateSRConfig();
+      }
+
+      updateDisplay();
+    }
+
+    function undo() {
+      if (history.length > 0) {
+        const lastState = history.pop();
+        currentGameIndex = lastState.currentGameIndex;
+        scoreA = lastState.scoreA;
+        scoreB = lastState.scoreB;
+        gamesA = lastState.gamesA;
+        gamesB = lastState.gamesB;
+        isMatchOver = lastState.isMatchOver;
+        gameData = lastState.gameData;
+        
+        updateSRConfig();
+        updateDisplay();
+      }
+    }
+
+    function renderRallyTables() {
+      const container = document.getElementById('rallyTablesContainer');
+      let players = [];
+
+      if (matchMode === 'doubles') {
+        const p1A = document.getElementById('teamA_p1').value || '選手 A1';
+        const p2A = document.getElementById('teamA_p2').value || '選手 A2';
+        const p1B = document.getElementById('teamB_p1').value || '選手 B1';
+        const p2B = document.getElementById('teamB_p2').value || '選手 B2';
+        players = [
+          { id: 'A1', name: p1A, team: 'A' },
+          { id: 'A2', name: p2A, team: 'A' },
+          { id: 'B1', name: p1B, team: 'B' },
+          { id: 'B2', name: p2B, team: 'B' }
+        ];
+      } else {
+        const p1A = document.getElementById('singlesA_p1').value || '選手 A';
+        const p1B = document.getElementById('singlesB_p1').value || '選手 B';
+        players = [
+          { id: 'A1', name: p1A, team: 'A' },
+          { id: 'B1', name: p1B, team: 'B' }
+        ];
+      }
+
+      let html = '';
+
+      for (let g = 0; g <= currentGameIndex; g++) {
+        const gData = gameData[g];
+        const rallies = gData.rallies;
+
+        let statusText = gData.finished ? `(終了: ${gData.winner === 'A' ? 'A勝利' : 'B勝利'})` : '(進行中)';
+
+        html += `<div style="margin-top:12px; font-weight:bold; font-size:0.85rem; display:flex; align-items:center;">`;
+        html += `<span>■ 第 ${g + 1} ゲーム</span>`;
+        html += `<span class="game-status-badge">${statusText}</span>`;
+        html += `</div>`;
+
+        html += `<div class="rally-container"><table class="rally-table">`;
+        
+        html += `<tr>`;
+        html += `<th style="min-width:90px;">選手名</th>`;
+        html += `<th class="mark-sr-col" style="background-color:#fbc02d !important; color:#000;">S/R</th>`;
+        
+        const totalRallies = rallies.length;
+        if (totalRallies === 0) {
+          html += `<th>1</th>`;
+        } else {
+          for (let i = 1; i <= totalRallies; i++) {
+            html += `<th>${i}</th>`;
+          }
+        }
+        html += `</tr>`;
+
+        players.forEach(p => {
+          html += `<tr>`;
+          html += `<td class="team-header-${p.team}">${p.name}</td>`;
+          
+          let initialMark = '-';
+          if (p.id === gData.serverPlayer) initialMark = 'S';
+          else if (p.id === gData.receiverPlayer) initialMark = 'R';
+          html += `<td class="mark-sr-col">${initialMark}</td>`;
+
+          if (totalRallies === 0) {
+            html += `<td>-</td>`;
+          } else {
+            for (let col = 0; col < totalRallies; col++) {
+              const r = rallies[col];
+              if (r && p.team === r.winner) {
+                html += `<td class="score-cell-${p.team}">${p.team === 'A' ? r.scoreA : r.scoreB}</td>`;
+              } else {
+                html += `<td>-</td>`;
+              }
+            }
+          }
+          
+          html += `</tr>`;
+        });
+
+        html += `</table></div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function updateDisplay() {
+      document.getElementById('scoreA').innerText = scoreA;
+      document.getElementById('scoreB').innerText = scoreB;
+      document.getElementById('gamesA').innerText = gamesA;
+      document.getElementById('gamesB').innerText = gamesB;
+
+      document.getElementById('currentGameLabel').innerText = `第 ${currentGameIndex + 1} ゲーム`;
+      
+      const modeLabel = matchMode === 'doubles' ? 'ダブルス' : 'シングルス';
+      const statusText = isMatchOver 
+        ? `【試合終了】(${modeLabel})` 
+        : `進行中: 第 ${currentGameIndex + 1} ゲーム (${modeLabel})`;
+      document.getElementById('matchStatusText').innerText = statusText;
+
+      const isSRSelected = !!(gameData[currentGameIndex].serverPlayer && gameData[currentGameIndex].receiverPlayer);
+      
+      document.getElementById('btnScoreA').disabled = isMatchOver || !isSRSelected;
+      document.getElementById('btnScoreB').disabled = isMatchOver || !isSRSelected;
+      document.getElementById('btnFinishGame').disabled = isMatchOver;
+
+      renderRallyTables();
+
+      const log = document.getElementById('historyLog');
+      log.innerHTML = history.map((h, i) => `[${i+1}] G${h.currentGameIndex + 1} - A: ${h.scoreA} / B: ${h.scoreB}`).reverse().join('<br>');
+    }
+
+    function saveToStorage() {
+      const saveData = {
+        matchMode,
+        tournament: document.getElementById('tournament').value,
+        matchNo: document.getElementById('matchNo').value,
+        courtNo: document.getElementById('courtNo').value,
+        date: document.getElementById('date').value,
+        schedTime: document.getElementById('schedTime').value,
+        shuttles: document.getElementById('shuttles').value,
+
+        teamA_p1: document.getElementById('teamA_p1').value,
+        teamA_p2: document.getElementById('teamA_p2').value,
+        teamB_p1: document.getElementById('teamB_p1').value,
+        teamB_p2: document.getElementById('teamB_p2').value,
+
+        singlesA_p1: document.getElementById('singlesA_p1').value,
+        singlesB_p1: document.getElementById('singlesB_p1').value,
+
+        startTime: document.getElementById('startTime').value,
+        endTime: document.getElementById('endTime').value,
+        duration: document.getElementById('duration').value,
+        referee: document.getElementById('referee').value,
+        serviceJudge: document.getElementById('serviceJudge').value,
+        notes: document.getElementById('notes').value,
+
+        currentGameIndex,
+        scoreA, scoreB, gamesA, gamesB,
+        isMatchOver,
+        gameData,
+        history,
+        savedAt: new Date().toLocaleString()
+      };
+
+      localStorage.setItem('badminton_match_data', JSON.stringify(saveData));
+      alert(`試合状態を保存しました！（保存日時: ${saveData.savedAt}）`);
+    }
+
+    function loadFromStorage() {
+      const dataStr = localStorage.getItem('badminton_match_data');
+      if (!dataStr) {
+        alert('保存されたデータが見つかりませんでした。');
+        return;
+      }
+
+      if (!confirm('保存されたデータを読み込みますか？現在の入力内容は上書きされます。')) return;
+
+      const data = JSON.parse(dataStr);
+
+      matchMode = data.matchMode || 'doubles';
+      document.getElementById('tabDoubles').classList.toggle('active', matchMode === 'doubles');
+      document.getElementById('tabSingles').classList.toggle('active', matchMode === 'singles');
+      document.getElementById('inputContainerDoubles').style.display = matchMode === 'doubles' ? 'grid' : 'none';
+      document.getElementById('inputContainerSingles').style.display = matchMode === 'singles' ? 'grid' : 'none';
+
+      document.getElementById('tournament').value = data.tournament || '';
+      document.getElementById('matchNo').value = data.matchNo || '';
+      document.getElementById('courtNo').value = data.courtNo || '';
+      document.getElementById('date').value = data.date || '';
+      document.getElementById('schedTime').value = data.schedTime || '';
+      document.getElementById('shuttles').value = data.shuttles || 0;
+
+      document.getElementById('teamA_p1').value = data.teamA_p1 || '';
+      document.getElementById('teamA_p2').value = data.teamA_p2 || '';
+      document.getElementById('teamB_p1').value = data.teamB_p1 || '';
+      document.getElementById('teamB_p2').value = data.teamB_p2 || '';
+
+      document.getElementById('singlesA_p1').value = data.singlesA_p1 || '';
+      document.getElementById('singlesB_p1').value = data.singlesB_p1 || '';
+
+      document.getElementById('startTime').value = data.startTime || '';
+      document.getElementById('endTime').value = data.endTime || '';
+      document.getElementById('duration').value = data.duration || '';
+      document.getElementById('referee').value = data.referee || '';
+      document.getElementById('serviceJudge').value = data.serviceJudge || '';
+      document.getElementById('notes').value = data.notes || '';
+
+      currentGameIndex = data.currentGameIndex || 0;
+      scoreA = data.scoreA || 0;
+      scoreB = data.scoreB || 0;
+      gamesA = data.gamesA || 0;
+      gamesB = data.gamesB || 0;
+      isMatchOver = data.isMatchOver || false;
+      gameData = data.gameData || [];
+      history = data.history || [];
+
+      updateTeamNames();
+      alert('保存データを読み込みました！');
+    }
+
+    /* Excel互換の色付きHTML出力機能（試合結果表記） */
+    function exportFormattedExcel() {
+      const tournament = document.getElementById('tournament').value || '';
+      const matchNo = document.getElementById('matchNo').value || '';
+      const courtNo = document.getElementById('courtNo').value || '';
+      const date = document.getElementById('date').value || '';
+      const schedTime = document.getElementById('schedTime').value || '';
+      const startTime = document.getElementById('startTime').value || '';
+      const endTime = document.getElementById('endTime').value || '';
+      const duration = document.getElementById('duration').value || '';
+      const shuttles = document.getElementById('shuttles').value || '0';
+      const referee = document.getElementById('referee').value || '';
+      const serviceJudge = document.getElementById('serviceJudge').value || '';
+      const notes = document.getElementById('notes').value || '';
+
+      const winnerName = isMatchOver 
+        ? (gamesA > gamesB ? document.getElementById('dispTeamA').innerText : document.getElementById('dispTeamB').innerText)
+        : '';
+
+      let players = [];
+      if (matchMode === 'doubles') {
+        const p1A = document.getElementById('teamA_p1').value || '選手 A1';
+        const p2A = document.getElementById('teamA_p2').value || '選手 A2';
+        const p1B = document.getElementById('teamB_p1').value || '選手 B1';
+        const p2B = document.getElementById('teamB_p2').value || '選手 B2';
+        players = [
+          { id: 'A1', name: p1A, team: 'A' },
+          { id: 'A2', name: p2A, team: 'A' },
+          { id: 'B1', name: p1B, team: 'B' },
+          { id: 'B2', name: p2B, team: 'B' }
+        ];
+      } else {
+        const p1A = document.getElementById('singlesA_p1').value || '選手 A';
+        const p1B = document.getElementById('singlesB_p1').value || '選手 B';
+        players = [
+          { id: 'A1', name: p1A, team: 'A' },
+          { id: 'B1', name: p1B, team: 'B' }
+        ];
+      }
+
+      let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table { border-collapse: collapse; font-family: "MS Gothic", sans-serif; font-size: 11pt; }
+          td, th { border: 1px solid #777777; text-align: center; vertical-align: middle; padding: 4px 6px; }
+          .header-bg { background-color: #333333; color: #ffffff; font-weight: bold; }
+          .sr-bg { background-color: #fff59d; font-weight: bold; color: #b71c1c; }
+          .team-A-header { background-color: #e8f5e9; color: #1b5e20; font-weight: bold; text-align: left; }
+          .team-B-header { background-color: #e3f2fd; color: #1565c0; font-weight: bold; text-align: left; }
+          .score-A { background-color: #c8e6c9; color: #1b5e20; font-weight: bold; }
+          .score-B { background-color: #bbdefb; color: #0d47a1; font-weight: bold; }
+          .meta-label { font-weight: bold; background-color: #f0f0f0; text-align: right; }
+          .title-header { font-size: 14pt; font-weight: bold; background-color: #1b5e20; color: #ffffff; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colspan="6" class="title-header">試合結果</td></tr>
+          <tr><td class="meta-label">大会名称:</td><td colspan="5" style="text-align:left;">${tournament}</td></tr>
+          <tr><td class="meta-label">試合番号:</td><td>${matchNo}</td><td class="meta-label">コート番号:</td><td>${courtNo}</td></tr>
+          <tr><td class="meta-label">日付:</td><td>${date}</td><td class="meta-label">予定開始時刻:</td><td>${schedTime}</td></tr>
+          <tr><td class="meta-label">開始時刻:</td><td>${startTime}</td><td class="meta-label">終了時刻:</td><td>${endTime}</td><td class="meta-label">試合時間:</td><td>${duration}</td></tr>
+          <tr><td class="meta-label">シャトル数:</td><td>${shuttles}</td></tr>
+          <tr><td class="meta-label">主審:</td><td>${referee}</td><td class="meta-label">サービスジャッジ:</td><td>${serviceJudge}</td></tr>
+          <tr><td class="meta-label">勝者:</td><td colspan="3" style="text-align:left; font-weight:bold;">${winnerName}</td></tr>
+          <tr><td class="meta-label">特記事項:</td><td colspan="5" style="text-align:left;">${notes.replace(/\n/g, ' ')}</td></tr>
+        </table>
+        <br>`;
+
+      gameData.forEach((g, idx) => {
+        if (g.rallies.length > 0 || g.serverPlayer) {
+          html += `<b>■ 第 ${idx + 1} ゲーム結果</b>`;
+          html += `<table>`;
+          
+          html += `<tr>`;
+          html += `<th class="header-bg" style="min-width:100px;">選手名</th>`;
+          html += `<th class="sr-bg">S/R</th>`;
+          
+          const totalRallies = g.rallies.length;
+          for (let i = 1; i <= (totalRallies || 1); i++) {
+            html += `<th class="header-bg">${i}</th>`;
+          }
+          html += `</tr>`;
+
+          players.forEach(p => {
+            html += `<tr>`;
+            html += `<td class="team-${p.team}-header">${p.name}</td>`;
+            
+            let initialMark = '-';
+            if (p.id === g.serverPlayer) initialMark = 'S';
+            else if (p.id === g.receiverPlayer) initialMark = 'R';
+            html += `<td class="sr-bg">${initialMark}</td>`;
+
+            if (totalRallies === 0) {
+              html += `<td>-</td>`;
+            } else {
+              for (let col = 0; col < totalRallies; col++) {
+                const r = g.rallies[col];
+                if (r && p.team === r.winner) {
+                  html += `<td class="score-${p.team}">${p.team === 'A' ? r.scoreA : r.scoreB}</td>`;
+                } else {
+                  html += `<td>-</td>`;
+                }
+              }
+            }
+            html += `</tr>`;
+          });
+
+          html += `</table><br>`;
+        }
+      });
+
+      html += `</body></html>`;
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+      const link = document.createElement("a");
+      const fileName = `試合結果_${matchNo || 'score'}.xls`;
+      
+      if (navigator.msSaveBlob) {
+        navigator.msSaveBlob(blob, fileName);
+      } else {
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+
+    function recordTime(type) {
+      const now = new Date();
+      const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      
+      if (type === 'start') {
+        startTimestamp = now;
+        document.getElementById('startTime').value = timeStr;
+      } else if (type === 'end') {
+        document.getElementById('endTime').value = timeStr;
+        if (startTimestamp) {
+          const diffMs = now - startTimestamp;
+          const diffMins = Math.floor(diffMs / 60000);
+          document.getElementById('duration').value = diffMins + ' 分';
+        }
+      }
+    }
+
+    function addNote(text) {
+      const notesField = document.getElementById('notes');
+      notesField.value += (notesField.value ? '\n' : '') + text;
+    }
+
+    function resetMatchData() {
+      currentGameIndex = 0;
+      scoreA = 0; scoreB = 0; gamesA = 0; gamesB = 0;
+      isMatchOver = false;
+      history = [];
+      gameData = [
+        { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null },
+        { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null },
+        { rallies: [], serverPlayer: '', receiverPlayer: '', finished: false, winner: null }
+      ];
+      updateSRConfig();
+      updateDisplay();
+    }
+
+    function resetMatch() {
+      if (confirm('試合全体をリセットし、第1ゲームに戻しますか？')) {
+        resetMatchData();
+      }
+    }
+
+    // 初期化
+    updateSRConfig();
+    updateDisplay();
+  </script>
+</body>
+</html>
